@@ -1,0 +1,11 @@
+[package]
+name = "enum-unitary"
+version = "0.1.0"
+authors = ["Shane Pearman <spearman@github.com>"]
+
+[dependencies]
+num = "0.1.*"
+
+[dev-dependencies]
+macro-attr = "0.2.*"
+enum_derive = "0.1.*"
