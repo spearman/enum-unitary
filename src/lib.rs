@@ -93,7 +93,7 @@ macro_rules! enum_unitary {
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       enum $enum {
-        Void = std::isize::MAX
+        Void = ::std::isize::MAX
       }
     }
 
@@ -130,13 +130,13 @@ macro_rules! enum_unitary {
     impl ::num::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
-          std::isize::MAX => Some ($enum::Void),
+          ::std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
       fn from_u64 (x: u64) -> Option <Self> {
         match x as isize {
-          std::isize::MAX => Some ($enum::Void),
+          ::std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
@@ -179,7 +179,7 @@ macro_rules! enum_unitary {
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       pub enum $enum {
-        Void = std::isize::MAX
+        Void = ::std::isize::MAX
       }
     }
 
@@ -216,13 +216,13 @@ macro_rules! enum_unitary {
     impl ::num::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
-          std::isize::MAX => Some ($enum::Void),
+          ::std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
       fn from_u64 (x: u64) -> Option <Self> {
         match x as isize {
-          std::isize::MAX => Some ($enum::Void),
+          ::std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
