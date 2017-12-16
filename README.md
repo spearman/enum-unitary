@@ -10,7 +10,15 @@ additional const function `count` returning the number of variants in the enum.
 
 ## Usage
 
-Using the `enum_unitary!` macro requires external dependencies:
+Add dependency to `Cargo.toml`:
+
+```toml
+[dependencies.enum-unitary]
+version = "0.1.*"
+git = "git://github.com/spearman/enum-unitary.git"
+```
+
+Using the `enum_unitary!` macro requires additional external dependencies:
 
 ```toml
 [dependencies]
