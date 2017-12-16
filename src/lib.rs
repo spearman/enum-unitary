@@ -48,36 +48,36 @@ pub trait EnumUnitary : Copy + Clone + Eq + Ord + PartialEq + PartialOrd
 ///
 /// ```
 /// #![feature(const_fn)]
-/// # extern crate num;
-/// # #[macro_use] extern crate macro_attr;
-/// # #[macro_use] extern crate enum_derive;
-/// # #[macro_use] extern crate enum_unitary;
-/// # fn main () {
-/// enum_unitary! {
-///   pub enum E (EVariants) {
-///     A, B, C
+/// extern crate num;
+/// #[macro_use] extern crate macro_attr;
+/// #[macro_use] extern crate enum_derive;
+/// #[macro_use] extern crate enum_unitary;
+/// fn main () {
+///   enum_unitary! {
+///     pub enum E (EVariants) {
+///       A, B, C
+///     }
 ///   }
+///   use num::Bounded;
+///   use enum_unitary::EnumUnitary;
+///   assert_eq!(E::count(), 3);
+///   assert_eq!(Into::<usize>::into (E::A), 0);
+///   assert_eq!(Into::<usize>::into (E::B), 1);
+///   assert_eq!(Into::<usize>::into (E::C), 2);
+///   assert_eq!(E::min_value(), E::A);
+///   assert_eq!(E::max_value(), E::C);
+///   let mut i = E::iter_variants();
+///   assert_eq!(i.next(), Some (E::A));
+///   assert_eq!(i.next(), Some (E::B));
+///   assert_eq!(i.next(), Some (E::C));
+///   assert_eq!(i.next(), None);
+///   assert_eq!(E::A.next_variant(), Some (E::B));
+///   assert_eq!(E::A.prev_variant(), None);
+///   assert_eq!(E::B.next_variant(), Some (E::C));
+///   assert_eq!(E::B.prev_variant(), Some (E::A));
+///   assert_eq!(E::C.next_variant(), None);
+///   assert_eq!(E::C.prev_variant(), Some (E::B));
 /// }
-/// use num::Bounded;
-/// use enum_unitary::EnumUnitary;
-/// assert_eq!(E::count(), 3);
-/// assert_eq!(Into::<usize>::into (E::A), 0);
-/// assert_eq!(Into::<usize>::into (E::B), 1);
-/// assert_eq!(Into::<usize>::into (E::C), 2);
-/// assert_eq!(E::min_value(), E::A);
-/// assert_eq!(E::max_value(), E::C);
-/// let mut i = E::iter_variants();
-/// assert_eq!(i.next(), Some (E::A));
-/// assert_eq!(i.next(), Some (E::B));
-/// assert_eq!(i.next(), Some (E::C));
-/// assert_eq!(i.next(), None);
-/// assert_eq!(E::A.next_variant(), Some (E::B));
-/// assert_eq!(E::A.prev_variant(), None);
-/// assert_eq!(E::B.next_variant(), Some (E::C));
-/// assert_eq!(E::B.prev_variant(), Some (E::A));
-/// assert_eq!(E::C.next_variant(), None);
-/// assert_eq!(E::C.prev_variant(), Some (E::B));
-/// # }
 /// ```
 
 #[macro_export]
