@@ -2,6 +2,8 @@
 
 > Trait and macro for unitary enums
 
+[Documentation](https://spearman.github.io/enum-unitary/enum_unitary/index.html)
+
 The `EnumUnitary` trait carries a number of constraints and exposes some
 methods for working with variants.
 

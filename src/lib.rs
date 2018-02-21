@@ -1,4 +1,6 @@
 //! Trait and macro for unitary enums.
+//!
+//! [Repository](https://github.com/spearman/enum-unitary)
 
 #![feature(const_fn)]
 
