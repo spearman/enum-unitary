@@ -7,7 +7,7 @@
 The `EnumUnitary` trait carries a number of constraints and exposes some
 methods for working with variants.
 
-The `enum_unitary!` macro defines new enum implementing `EnumUnitary` and an
+The `enum_unitary!` macro defines a new enum implementing `EnumUnitary` and an
 additional const function '`count`' returning the number of variants in the
 enum.
 
