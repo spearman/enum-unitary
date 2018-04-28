@@ -3,6 +3,10 @@ name = "enum-unitary"
 version = "0.2.0"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "Apache-2.0"
+description = "Trait and macro for unitary enums"
+documentation = "https://spearman.github.io/enum-unitary/enum_unitary"
+repository = "https://github.com/spearman/enum-unitary"
+readme = "README.md"
 
 [dependencies]
 macro-attr = "0.2.*"
