@@ -1,12 +1,10 @@
 [package]
 name = "enum-unitary"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "Apache-2.0"
 
 [dependencies]
-num = "0.1.*"
-
-[dev-dependencies]
 macro-attr = "0.2.*"
 enum_derive = "0.1.*"
+num = "0.1.*"
