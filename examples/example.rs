@@ -9,8 +9,7 @@ enum_unitary!{
 }
 
 fn main() {
-  use enum_unitary::EnumUnitary;
-  use enum_unitary::num::{Bounded, FromPrimitive, ToPrimitive};
+  use enum_unitary::{EnumUnitary, Bounded, FromPrimitive, ToPrimitive};
 
   assert_eq!(Myenum::count(), 3);
   assert_eq!(Myenum::count_variants(), 3);

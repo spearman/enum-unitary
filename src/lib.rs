@@ -1,10 +1,25 @@
-//! Trait and macro for unitary enums.
+//! `EnumUnitary` trait and `enum_unitary!` macro.
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
+//!
+//! The following `num` traits re-exported in the local crate:
+//!
+//! ```text
+//! use enum_unitary::{Bounded, FromPrimitive, ToPrimitive};
+//! ```
+//!
+//! The following macros are also re-exported because they are used in the
+//! `enum_unitary!` macro implementation and do not need to be used directly:
+//!
+//! ```text
+//! macro_attr::{macro_attr};
+//! enum_derive::{enum_derive_util, IterVariants, NextVariant, PrevVariant};
+//! ```
 
 #![cfg_attr(test, feature(const_fn))]
 #![feature(macro_reexport)]
 
+// TODO: hide documentation (macros 2.0)
 #[cfg_attr(test, macro_use)]
 #[macro_reexport(macro_attr, macro_attr_impl)]
 extern crate macro_attr;
@@ -12,7 +27,10 @@ extern crate macro_attr;
 #[macro_reexport(enum_derive_util,IterVariants,NextVariant,PrevVariant)]
 extern crate enum_derive;
 
-pub extern crate num;
+extern crate num;
+
+#[doc(hidden)]
+pub use num::{Bounded, FromPrimitive, ToPrimitive};
 
 //
 //  trait EnumUnitary
@@ -53,9 +71,6 @@ pub trait EnumUnitary : Copy + Clone + Eq + Ord + PartialEq + PartialOrd
 ///
 /// ```
 /// #![feature(const_fn)]
-/// extern crate num;
-/// #[macro_use] extern crate macro_attr;
-/// #[macro_use] extern crate enum_derive;
 /// #[macro_use] extern crate enum_unitary;
 /// fn main () {
 ///   enum_unitary! {
@@ -63,8 +78,7 @@ pub trait EnumUnitary : Copy + Clone + Eq + Ord + PartialEq + PartialOrd
 ///       A, B, C
 ///     }
 ///   }
-///   use num::Bounded;
-///   use enum_unitary::EnumUnitary;
+///   use enum_unitary::{EnumUnitary, Bounded};
 ///   assert_eq!(E::count(), 3);
 ///   assert_eq!(Into::<usize>::into (E::A), 0);
 ///   assert_eq!(Into::<usize>::into (E::B), 1);
@@ -123,7 +137,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::Void
       }
@@ -132,7 +146,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
           ::std::isize::MAX => Some ($enum::Void),
@@ -147,7 +161,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }
@@ -209,7 +223,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::Void
       }
@@ -218,7 +232,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
           ::std::isize::MAX => Some ($enum::Void),
@@ -233,7 +247,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }
@@ -295,7 +309,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::$singleton
       }
@@ -304,7 +318,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x {
           0 => Some ($enum::$singleton),
@@ -319,7 +333,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }
@@ -381,7 +395,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::$singleton
       }
@@ -390,7 +404,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x {
           0 => Some ($enum::$singleton),
@@ -405,7 +419,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }
@@ -485,7 +499,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::$min
       }
@@ -494,7 +508,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         const VARIANTS : [$enum; $enum::count()]
           = [$enum::$min$(, $enum::$variant)*, $enum::$max];
@@ -507,7 +521,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }
@@ -587,7 +601,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::Bounded for $enum {
+    impl $crate::Bounded for $enum {
       fn min_value() -> Self {
         $enum::$min
       }
@@ -596,7 +610,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::FromPrimitive for $enum {
+    impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         const VARIANTS : [$enum; $enum::count()]
           = [$enum::$min$(, $enum::$variant)*, $enum::$max];
@@ -609,7 +623,7 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::num::ToPrimitive for $enum {
+    impl $crate::ToPrimitive for $enum {
       fn to_i64 (&self) -> Option <i64> {
         Some (self.clone() as i64)
       }

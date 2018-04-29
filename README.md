@@ -31,8 +31,7 @@ enum_unitary! {
     A, B, C
   }
 }
-use enum_unitary::EnumUnitary;
-use enum_unitary::num::Bounded;
+use enum_unitary::{ EnumUnitary, Bounded};
 assert_eq!(E::count(), 3);
 assert_eq!(Into::<usize>::into (E::A), 0);
 assert_eq!(Into::<usize>::into (E::A), 1);
