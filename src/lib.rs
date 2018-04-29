@@ -2,7 +2,7 @@
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
 //!
-//! The following `num` traits re-exported in the local crate:
+//! The following `num_traits` traits re-exported in the local crate:
 //!
 //! ```text
 //! use enum_unitary::{Bounded, FromPrimitive, ToPrimitive};
@@ -27,10 +27,10 @@ extern crate macro_attr;
 #[macro_reexport(enum_derive_util,IterVariants,NextVariant,PrevVariant)]
 extern crate enum_derive;
 
-extern crate num;
+extern crate num_traits;
 
 #[doc(hidden)]
-pub use num::{Bounded, FromPrimitive, ToPrimitive};
+pub use num_traits::{Bounded, FromPrimitive, ToPrimitive};
 
 //
 //  trait EnumUnitary
@@ -46,7 +46,7 @@ pub trait EnumUnitary : Copy + Clone + Eq + Ord + PartialEq + PartialOrd
   // types requires using disambiguation syntax; we choose `usize` here since
   // it is commonly used as an index type.
   + Into <i64> + Into <u64> + Into <isize> + Into <usize>
-  + num::Bounded + num::ToPrimitive + num::FromPrimitive
+  + Bounded + ToPrimitive + FromPrimitive
 {
   fn count_variants() -> usize;
   fn iter_variants() -> Box <Iterator <Item=Self>>;
@@ -660,9 +660,7 @@ mod tests {
 
   #[test]
   fn test_unit() {
-    use num::Bounded;
-    use num::{FromPrimitive,ToPrimitive};
-    use EnumUnitary;
+    use {EnumUnitary, Bounded, FromPrimitive,ToPrimitive};
 
     // private enum
     enum_unitary!{

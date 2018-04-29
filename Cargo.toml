@@ -1,6 +1,6 @@
 [package]
 name = "enum-unitary"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "Apache-2.0"
 description = "Trait and macro for unitary enums"
@@ -10,4 +10,4 @@ readme = "README.md"
 [dependencies]
 macro-attr = "0.2.*"
 enum_derive = "0.1.*"
-num = "0.1.*"
+num-traits = "0.2.*"
