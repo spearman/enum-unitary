@@ -2,7 +2,7 @@
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
 //!
-//! The following `num_traits` traits re-exported in the local crate:
+//! The following `num_traits` traits are re-exported in the local crate:
 //!
 //! ```text
 //! use enum_unitary::{Bounded, FromPrimitive, ToPrimitive};
