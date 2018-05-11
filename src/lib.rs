@@ -17,20 +17,22 @@
 //! ```
 
 #![cfg_attr(test, feature(const_fn))]
-#![feature(macro_reexport)]
+#![feature(use_extern_macros)]
 
-// TODO: hide documentation (macros 2.0)
 #[cfg_attr(test, macro_use)]
-#[macro_reexport(macro_attr, macro_attr_impl)]
-extern crate macro_attr;
-#[cfg_attr(test, macro_use)]
-#[macro_reexport(enum_derive_util,IterVariants,NextVariant,PrevVariant)]
 extern crate enum_derive;
+#[cfg_attr(test, macro_use)]
+extern crate macro_attr;
 
 extern crate num_traits;
 
+// NOTE: macro documentation is not hidden (Rust 1.27.0)
 #[doc(hidden)]
 pub use num_traits::{Bounded, FromPrimitive, ToPrimitive};
+#[doc(hidden)]
+pub use enum_derive::{enum_derive_util, IterVariants, NextVariant, PrevVariant};
+#[doc(hidden)]
+pub use macro_attr::{macro_attr_impl, macro_attr};
 
 //
 //  trait EnumUnitary
