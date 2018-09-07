@@ -279,7 +279,7 @@ macro_rules! enum_unitary {
   //  singleton: private
   //
   (
-    enum $enum:ident ($iter:ident) { $singleton:ident }
+    enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
   ) => {
 
     macro_attr!{
@@ -365,7 +365,7 @@ macro_rules! enum_unitary {
   //  singleton: public
   //
   (
-    pub enum $enum:ident ($iter:ident) { $singleton:ident }
+    pub enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
   ) => {
 
     macro_attr!{
@@ -451,7 +451,7 @@ macro_rules! enum_unitary {
   //  2 or more variants: private
   //
   (
-    enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident)+ }
+    enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
     enum_unitary!{
       enum $enum ($iter) {$first} {$($variant),+}
@@ -553,7 +553,7 @@ macro_rules! enum_unitary {
   //  2 or more variants: public
   //
   (
-    pub enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident)+ }
+    pub enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
     enum_unitary!{
       pub enum $enum ($iter) {$first} {$($variant),+}
