@@ -17,7 +17,6 @@
 //! ```
 
 #![cfg_attr(test, feature(const_fn))]
-#![feature(use_extern_macros)]
 
 #[cfg_attr(test, macro_use)]
 extern crate enum_derive;
@@ -107,10 +106,12 @@ macro_rules! enum_unitary {
   //  nullary: private
   //
   (
+    $(#[$attrs:meta])*
     enum $enum:ident ($iter:ident) { }
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       enum $enum {
@@ -193,10 +194,12 @@ macro_rules! enum_unitary {
   //  nullary: public
   //
   (
+    $(#[$attrs:meta])*
     pub enum $enum:ident ($iter:ident) { }
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       pub enum $enum {
@@ -279,10 +282,12 @@ macro_rules! enum_unitary {
   //  singleton: private
   //
   (
+    $(#[$attrs:meta])*
     enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       enum $enum {
@@ -365,10 +370,12 @@ macro_rules! enum_unitary {
   //  singleton: public
   //
   (
+    $(#[$attrs:meta])*
     pub enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       pub enum $enum {
@@ -451,28 +458,34 @@ macro_rules! enum_unitary {
   //  2 or more variants: private
   //
   (
+    $(#[$attrs:meta])*
     enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
     enum_unitary!{
+      $(#[$attrs])*
       enum $enum ($iter) {$first} {$($variant),+}
     }
   };
 
   (
+    $(#[$attrs:meta])*
     enum $enum:ident ($iter:ident)
       {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
   ) => {
     enum_unitary!{
+      $(#[$attrs])*
       enum $enum ($iter) {$($variant,)+ $more} {$($tail),+}
     }
   };
 
   (
+    $(#[$attrs:meta])*
     enum $enum:ident ($iter:ident)
       {$min:ident$(, $variant:ident)*} {$max:ident}
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       enum $enum {
@@ -553,28 +566,34 @@ macro_rules! enum_unitary {
   //  2 or more variants: public
   //
   (
+    $(#[$attrs:meta])*
     pub enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
     enum_unitary!{
+      $(#[$attrs])*
       pub enum $enum ($iter) {$first} {$($variant),+}
     }
   };
 
   (
+    $(#[$attrs:meta])*
     pub enum $enum:ident ($iter:ident)
       {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
   ) => {
     enum_unitary!{
+      $(#[$attrs])*
       pub enum $enum ($iter) {$($variant,)+ $more} {$($tail),+}
     }
   };
 
   (
+    $(#[$attrs:meta])*
     pub enum $enum:ident ($iter:ident)
       {$min:ident$(, $variant:ident)*} {$max:ident}
   ) => {
 
     macro_attr!{
+      $(#[$attrs])*
       #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
         IterVariants!($iter),NextVariant!,PrevVariant!)]
       pub enum $enum {
