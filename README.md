@@ -34,8 +34,8 @@ enum_unitary! {
 use enum_unitary::{EnumUnitary, Bounded};
 assert_eq!(E::count(), 3);
 assert_eq!(Into::<usize>::into (E::A), 0);
-assert_eq!(Into::<usize>::into (E::A), 1);
-assert_eq!(Into::<usize>::into (E::A), 2);
+assert_eq!(Into::<usize>::into (E::B), 1);
+assert_eq!(Into::<usize>::into (E::C), 2);
 assert_eq!(E::min_value(), E::A);
 assert_eq!(E::max_value(), E::C);
 let mut i = E::iter_variants();
