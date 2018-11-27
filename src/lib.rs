@@ -183,7 +183,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         0
       }
     }
@@ -271,7 +271,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         0
       }
     }
@@ -359,7 +359,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         1
       }
     }
@@ -447,7 +447,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         1
       }
     }
@@ -555,7 +555,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         $enum::$max as usize + 1
       }
     }
@@ -663,7 +663,7 @@ macro_rules! enum_unitary {
     }
 
     impl $enum {
-      const fn count() -> usize {
+      pub const fn count() -> usize {
         $enum::$max as usize + 1
       }
     }
