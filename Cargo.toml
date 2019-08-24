@@ -1,13 +1,13 @@
 [package]
 name = "enum-unitary"
-version = "0.3.6"
+version = "0.4.0"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "Apache-2.0"
 description = "Trait and macro for unitary enums"
 repository = "https://github.com/spearman/enum-unitary"
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
-macro-attr = "0.2.*"
-enum_derive = "0.1.*"
+enum-iterator = "0.3.*"
 num-traits = "0.2.*"

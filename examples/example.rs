@@ -1,9 +1,11 @@
 #![feature(const_fn)]
 
-#[macro_use] extern crate enum_unitary;
+extern crate enum_unitary;
+use enum_unitary::enum_unitary;
 
 enum_unitary!{
-  pub enum Myenum (MyenumVariants) {
+  #[derive(Debug, PartialEq)]
+  pub enum Myenum {
     A, B, C
   }
 }

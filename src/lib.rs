@@ -1,37 +1,15 @@
 //! `EnumUnitary` trait and `enum_unitary!` macro.
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
-//!
-//! The following `num_traits` traits are re-exported in the local crate:
-//!
-//! ```text
-//! use enum_unitary::{Bounded, FromPrimitive, ToPrimitive};
-//! ```
-//!
-//! The following macros are also re-exported because they are used in the
-//! `enum_unitary!` macro implementation and do not need to be used directly:
-//!
-//! ```text
-//! macro_attr::{macro_attr};
-//! enum_derive::{enum_derive_util, IterVariants, NextVariant, PrevVariant};
 //! ```
 
 #![cfg_attr(test, feature(const_fn))]
 
-#[cfg_attr(test, macro_use)]
-extern crate enum_derive;
-#[cfg_attr(test, macro_use)]
-extern crate macro_attr;
-
+pub extern crate enum_iterator;
 extern crate num_traits;
 
-// NOTE: macro documentation is not hidden (Rust 1.27.0)
-#[doc(hidden)]
+pub use enum_iterator::IntoEnumIterator;
 pub use num_traits::{Bounded, FromPrimitive, ToPrimitive};
-#[doc(hidden)]
-pub use enum_derive::{enum_derive_util, IterVariants, NextVariant, PrevVariant};
-#[doc(hidden)]
-pub use macro_attr::{macro_attr_impl, macro_attr};
 
 //
 //  trait EnumUnitary
@@ -40,46 +18,73 @@ pub use macro_attr::{macro_attr_impl, macro_attr};
 ///
 /// See the `enum_unitary!` macro for defining instances of this trait.
 // TODO: expose more constraints ?
-pub trait EnumUnitary : Copy + Clone + Eq + Ord + PartialEq + PartialOrd
-  + Send + Sync + std::fmt::Debug
+pub trait EnumUnitary : Clone
   // NB: as of Rust 1.22, the *last* of the following `Into` constraints
   // seems to be chosen by default and using `.into` for one of the other
   // types requires using disambiguation syntax; we choose `usize` here since
   // it is commonly used as an index type.
   + Into <i64> + Into <u64> + Into <isize> + Into <usize>
-  + Bounded + ToPrimitive + FromPrimitive
+  + Bounded + ToPrimitive + FromPrimitive + IntoEnumIterator
 {
   fn count_variants() -> usize;
-  fn iter_variants() -> Box <Iterator <Item=Self>>;
-  // TODO: expose more methods from enum_derive ?
+  fn iter_variants()  -> Box <dyn EnumIterator <Self>>;
+  fn next_variant (&self) -> Option <Self>;
+  fn prev_variant (&self) -> Option <Self>;
 }
+
+/// Type constraint for an enum iterator.
+///
+/// The `IntoEnumIterator` trait is derived and will define an iterator type
+/// named `FooEnumIterator` for an enum named `Foo` which will satisfy the
+/// `EnumIterator` constraint.
+///
+/// The `EnumUnitary::iter_variants()` method returns a trait object of this
+/// iterator for generic traversals over enums.
+pub trait EnumIterator <E> : Iterator <Item = E> + std::iter::ExactSizeIterator
+  + std::iter::FusedIterator
+{ }
+impl <I, E> EnumIterator <E> for I where
+  I : Iterator <Item = E> + std::iter::ExactSizeIterator
+    + std::iter::FusedIterator
+{ }
 
 //
 //  enum_unitary!
 //
-/// Wraps "unitary" enums (i.e. enums where variants do not have payloads) with
-/// `enum_derive` derives (`IterVariants`, `NextVariant`, `PrevVariant`) and
-/// implements the `EnumUnitary` trait.
+/// Derive and implement extra traits for "unitary" enums (i.e. enums where
+/// variants do not have payloads):
 ///
-/// Also defines a `count` const non-trait method that returns the number of
-/// variants in the enum.
+/// - derive `IntoEnumIterator`: implements an iterator type named
+///   `FooEnumIterator` for an enum named `Foo` and provides a trait method
+///   `into_enum_iter()`
+/// - implements `num_traits` traits `Bounded`, `ToPrimitive`, `FromPrimitive`
+/// - provides a trait method `count_variants()` and a const method `count()`
+///   returning the number of variants
+/// - provides `next_variant()` and `prev_variant()` methods
+/// - provides an `iter_variants()` method which returns the enum iterator as a
+///   boxed trait object for generic traversals
 ///
-/// Currently the deriving attribute is fixed and can not be overridden, and
-/// explicit discriminators are not allowed: enum variants will be numbered
-/// starting from `0`.
+/// Note that `Clone` is also automatically derived so there will be an error if
+/// it is given in a derive attribute.
+///
+/// Currently explicit discriminators are not allowed: enum variants will be
+/// numbered consecutively starting from `0`.
 ///
 /// # Examples
 ///
 /// ```
 /// #![feature(const_fn)]
-/// #[macro_use] extern crate enum_unitary;
+/// extern crate enum_unitary;
+///
 /// fn main () {
+///   use enum_unitary::{enum_unitary, EnumUnitary, Bounded, FromPrimitive,
+///     ToPrimitive};
 ///   enum_unitary! {
-///     pub enum E (EVariants) {
+///     #[derive(Debug, PartialEq)]
+///     pub enum E {
 ///       A, B, C
 ///     }
 ///   }
-///   use enum_unitary::{EnumUnitary, Bounded};
 ///   assert_eq!(E::count(), 3);
 ///   assert_eq!(Into::<usize>::into (E::A), 0);
 ///   assert_eq!(Into::<usize>::into (E::B), 1);
@@ -107,16 +112,13 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    enum $enum:ident ($iter:ident) { }
+    enum $enum:ident { }
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      enum $enum {
-        Void = ::std::isize::MAX
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    enum $enum {
+      Void = std::isize::MAX
     }
 
     impl From <$enum> for isize {
@@ -152,13 +154,13 @@ macro_rules! enum_unitary {
     impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
-          ::std::isize::MAX => Some ($enum::Void),
+          std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
       fn from_u64 (x: u64) -> Option <Self> {
         match x as isize {
-          ::std::isize::MAX => Some ($enum::Void),
+          std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
@@ -177,8 +179,15 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <Iterator <Item=Self>> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        None
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        None
       }
     }
 
@@ -195,16 +204,13 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident ($iter:ident) { }
+    pub enum $enum:ident { }
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      pub enum $enum {
-        Void = ::std::isize::MAX
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    pub enum $enum {
+      Void = std::isize::MAX
     }
 
     impl From <$enum> for isize {
@@ -240,13 +246,13 @@ macro_rules! enum_unitary {
     impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
         match x as isize {
-          ::std::isize::MAX => Some ($enum::Void),
+          std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
       fn from_u64 (x: u64) -> Option <Self> {
         match x as isize {
-          ::std::isize::MAX => Some ($enum::Void),
+          std::isize::MAX => Some ($enum::Void),
           _ => None
         }
       }
@@ -265,8 +271,15 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <Iterator <Item=Self>> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        None
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        None
       }
     }
 
@@ -283,16 +296,13 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
+    enum $enum:ident { $singleton:ident$(,)* }
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      enum $enum {
-        $singleton=0
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    enum $enum {
+      $singleton=0
     }
 
     impl From <$enum> for isize {
@@ -353,8 +363,15 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <Iterator <Item=Self>> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        None
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        None
       }
     }
 
@@ -371,16 +388,13 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident ($iter:ident) { $singleton:ident$(,)* }
+    pub enum $enum:ident { $singleton:ident$(,)* }
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      pub enum $enum {
-        $singleton=0
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    pub enum $enum {
+      $singleton=0
     }
 
     impl From <$enum> for isize {
@@ -441,8 +455,15 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <Iterator <Item=Self>> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        None
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        None
       }
     }
 
@@ -459,38 +480,33 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
+    enum $enum:ident { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
-    enum_unitary!{
+    $crate::enum_unitary!{
       $(#[$attrs])*
-      enum $enum ($iter) {$first} {$($variant),+}
+      enum $enum {$first} {$($variant),+}
     }
   };
 
   (
     $(#[$attrs:meta])*
-    enum $enum:ident ($iter:ident)
-      {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
+    enum $enum:ident {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
   ) => {
-    enum_unitary!{
+    $crate::enum_unitary!{
       $(#[$attrs])*
-      enum $enum ($iter) {$($variant,)+ $more} {$($tail),+}
+      enum $enum {$($variant,)+ $more} {$($tail),+}
     }
   };
 
   (
     $(#[$attrs:meta])*
-    enum $enum:ident ($iter:ident)
-      {$min:ident$(, $variant:ident)*} {$max:ident}
+    enum $enum:ident {$min:ident$(, $variant:ident)*} {$max:ident}
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      enum $enum {
-        $min=0$(, $variant)*, $max
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    enum $enum {
+      $min=0$(, $variant)*, $max
     }
 
     impl From <$enum> for isize {
@@ -549,8 +565,19 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <(Iterator <Item=Self>)> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        use $crate::{FromPrimitive, ToPrimitive};
+        let i = self.to_isize().unwrap();
+        Self::from_isize (i + 1)
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        use $crate::{FromPrimitive, ToPrimitive};
+        let i = self.to_isize().unwrap();
+        Self::from_isize (i - 1)
       }
     }
 
@@ -567,38 +594,35 @@ macro_rules! enum_unitary {
   //
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident ($iter:ident) { $first:ident$(, $variant:ident$(,)*)+ }
+    pub enum $enum:ident { $first:ident$(, $variant:ident$(,)*)+ }
   ) => {
-    enum_unitary!{
+    $crate::enum_unitary!{
       $(#[$attrs])*
-      pub enum $enum ($iter) {$first} {$($variant),+}
+      pub enum $enum {$first} {$($variant),+}
     }
   };
 
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident ($iter:ident)
+    pub enum $enum:ident
       {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
   ) => {
-    enum_unitary!{
+    $crate::enum_unitary!{
       $(#[$attrs])*
-      pub enum $enum ($iter) {$($variant,)+ $more} {$($tail),+}
+      pub enum $enum {$($variant,)+ $more} {$($tail),+}
     }
   };
 
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident ($iter:ident)
+    pub enum $enum:ident
       {$min:ident$(, $variant:ident)*} {$max:ident}
   ) => {
 
-    macro_attr!{
-      $(#[$attrs])*
-      #[derive (Clone,Copy,Debug,Eq,PartialEq,Ord,PartialOrd,
-        IterVariants!($iter),NextVariant!,PrevVariant!)]
-      pub enum $enum {
-        $min=0$(, $variant)*, $max
-      }
+    $(#[$attrs])*
+    #[derive(Clone, $crate::IntoEnumIterator)]
+    pub enum $enum {
+      $min=0$(, $variant)*, $max
     }
 
     impl From <$enum> for isize {
@@ -657,8 +681,19 @@ macro_rules! enum_unitary {
       fn count_variants() -> usize {
         Self::count()
       }
-      fn iter_variants() -> Box <Iterator <Item=Self>> {
-        Box::new (Self::iter_variants())
+      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
+        use $crate::IntoEnumIterator;
+        Box::new (Self::into_enum_iter())
+      }
+      fn next_variant (&self) -> Option <Self> {
+        use $crate::{FromPrimitive, ToPrimitive};
+        let i = self.to_isize().unwrap();
+        Self::from_isize (i + 1)
+      }
+      fn prev_variant (&self) -> Option <Self> {
+        use $crate::{FromPrimitive, ToPrimitive};
+        let i = self.to_isize().unwrap();
+        Self::from_isize (i - 1)
       }
     }
 
@@ -677,15 +712,16 @@ macro_rules! enum_unitary {
 //
 #[cfg(test)]
 mod tests {
-  use {std};
+  use std;
 
   #[test]
   fn test_unit() {
-    use {EnumUnitary, Bounded, FromPrimitive,ToPrimitive};
+    use crate::{EnumUnitary, Bounded, FromPrimitive, ToPrimitive};
 
     // private enum
     enum_unitary!{
-      enum Myenum1 (Myenum1Variants) {
+      #[derive(Debug, PartialEq)]
+      enum Myenum1 {
         A, B, C
       }
     }
@@ -717,7 +753,8 @@ mod tests {
 
     // public enum
     enum_unitary!{
-      pub enum Myenum2 (Myenum2Variants) {
+      #[derive(Debug, PartialEq)]
+      pub enum Myenum2 {
         A, B, C
       }
     }
@@ -749,7 +786,8 @@ mod tests {
 
     // private singleton enum
     enum_unitary!{
-      enum Myenum3 (Myenum3Variants) {
+      #[derive(Debug, PartialEq)]
+      enum Myenum3 {
         X
       }
     }
@@ -769,7 +807,8 @@ mod tests {
 
     // public singleton enum
     enum_unitary!{
-      pub enum Myenum4 (Myenum4Variants) {
+      #[derive(Debug, PartialEq)]
+      pub enum Myenum4 {
         X
       }
     }
@@ -789,7 +828,8 @@ mod tests {
 
     // private nullary enum
     enum_unitary!{
-      enum Myenum5 (Myenum5Variants) { }
+      #[derive(Debug, PartialEq)]
+      enum Myenum5 { }
     }
     assert_eq!(Myenum5::count(), 0);
     assert_eq!(Myenum5::count_variants(), 0);
@@ -808,7 +848,8 @@ mod tests {
 
     // public nullary enum
     enum_unitary!{
-      pub enum Myenum6 (Myenum6Variants) { }
+      #[derive(Debug, PartialEq)]
+      pub enum Myenum6 { }
     }
     assert_eq!(Myenum6::count(), 0);
     assert_eq!(Myenum6::count_variants(), 0);
