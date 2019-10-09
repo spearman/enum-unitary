@@ -3,8 +3,6 @@
 //! [Repository](https://github.com/spearman/enum-unitary)
 //! ```
 
-#![cfg_attr(test, feature(const_fn))]
-
 pub extern crate enum_iterator;
 extern crate num_traits;
 
@@ -73,7 +71,7 @@ impl <I, E> EnumIterator <E> for I where
 /// # Examples
 ///
 /// ```
-/// #![feature(const_fn)]
+/// extern crate enum_iterator;
 /// extern crate enum_unitary;
 ///
 /// fn main () {

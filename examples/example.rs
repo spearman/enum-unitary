@@ -1,5 +1,3 @@
-#![feature(const_fn)]
-
 extern crate enum_unitary;
 use enum_unitary::enum_unitary;
 
