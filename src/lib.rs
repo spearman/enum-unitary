@@ -1,7 +1,6 @@
 //! `EnumUnitary` trait and `enum_unitary!` macro.
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
-//! ```
 
 pub extern crate enum_iterator;
 extern crate num_traits;
