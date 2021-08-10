@@ -9,5 +9,5 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-enum-iterator = "0.6.*"
+enum-iterator = "0.7.*"
 num-traits = "0.2.*"
