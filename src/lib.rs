@@ -23,10 +23,11 @@ pub trait EnumUnitary : Clone
   + Into <i64> + Into <u64> + Into <isize> + Into <usize>
   + Bounded + ToPrimitive + FromPrimitive + IntoEnumIterator
 {
-  fn count_variants() -> usize;
+  fn count_variants() -> usize { Self::COUNT }
   fn iter_variants()  -> Box <dyn EnumIterator <Self>>;
   fn next_variant (&self) -> Option <Self>;
   fn prev_variant (&self) -> Option <Self>;
+  const COUNT: usize;
 }
 
 /// Type constraint for an enum iterator.
@@ -173,9 +174,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -265,9 +264,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -357,9 +354,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -449,9 +444,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -559,9 +552,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -675,9 +666,7 @@ macro_rules! enum_unitary {
     }
 
     impl $crate::EnumUnitary for $enum {
-      fn count_variants() -> usize {
-        Self::count()
-      }
+      const COUNT: usize = Self::count();
       fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
         use $crate::IntoEnumIterator;
         Box::new (Self::into_enum_iter())
@@ -723,6 +712,7 @@ mod tests {
       }
     }
     assert_eq!(Myenum1::count(), 3);
+    assert_eq!(Myenum1::COUNT, 3);
     assert_eq!(Myenum1::count_variants(), 3);
     assert_eq!(Into::<usize>::into (Myenum1::A), 0);
     assert_eq!(Into::<usize>::into (Myenum1::B), 1);
@@ -756,6 +746,7 @@ mod tests {
       }
     }
     assert_eq!(Myenum2::count(), 3);
+    assert_eq!(Myenum2::COUNT, 3);
     assert_eq!(Myenum2::count_variants(), 3);
     assert_eq!(Into::<usize>::into (Myenum2::A), 0);
     assert_eq!(Into::<usize>::into (Myenum2::B), 1);
@@ -789,6 +780,7 @@ mod tests {
       }
     }
     assert_eq!(Myenum3::count(), 1);
+    assert_eq!(Myenum3::COUNT, 1);
     assert_eq!(Myenum3::count_variants(), 1);
     assert_eq!(Into::<usize>::into (Myenum3::X), 0);
     assert_eq!(Some (Myenum3::X), Myenum3::from_usize (0));
@@ -810,6 +802,7 @@ mod tests {
       }
     }
     assert_eq!(Myenum4::count(), 1);
+    assert_eq!(Myenum4::COUNT, 1);
     assert_eq!(Myenum4::count_variants(), 1);
     assert_eq!(Into::<usize>::into (Myenum4::X), 0);
     assert_eq!(Some (Myenum4::X), Myenum4::from_usize (0));
@@ -829,6 +822,7 @@ mod tests {
       enum Myenum5 { }
     }
     assert_eq!(Myenum5::count(), 0);
+    assert_eq!(Myenum5::COUNT, 0);
     assert_eq!(Myenum5::count_variants(), 0);
     assert_eq!(Myenum5::Void as isize, std::isize::MAX);
     assert_eq!(Some (Myenum5::Void),
@@ -849,6 +843,7 @@ mod tests {
       pub enum Myenum6 { }
     }
     assert_eq!(Myenum6::count(), 0);
+    assert_eq!(Myenum6::COUNT, 0);
     assert_eq!(Myenum6::count_variants(), 0);
     assert_eq!(Myenum6::Void as isize, std::isize::MAX);
     assert_eq!(Some (Myenum6::Void),
