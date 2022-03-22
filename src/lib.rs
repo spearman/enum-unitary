@@ -2,7 +2,7 @@
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
 
-pub extern crate enum_iterator;
+extern crate enum_iterator;
 extern crate num_traits;
 
 pub use enum_iterator::IntoEnumIterator;
@@ -71,12 +71,10 @@ impl <I, E> EnumIterator <E> for I where
 /// # Examples
 ///
 /// ```
-/// extern crate enum_iterator;
-/// extern crate enum_unitary;
+/// use enum_unitary::{enum_unitary, EnumUnitary, Bounded, FromPrimitive,
+///   ToPrimitive};
 ///
 /// fn main () {
-///   use enum_unitary::{enum_unitary, EnumUnitary, Bounded, FromPrimitive,
-///     ToPrimitive};
 ///   enum_unitary! {
 ///     #[derive(Debug, PartialEq)]
 ///     pub enum E {

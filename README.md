@@ -16,7 +16,7 @@ required traits.
 For the macro to derive `IntoEnumIterator`, the `enum-iterator` crate must also
 be added to `Cargo.toml`:
 ```toml
-enum-iterator = "0.5"
+enum-iterator = "0.7"
 enum-unitary = "0.4"
 ```
 
