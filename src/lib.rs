@@ -2,16 +2,15 @@
 //!
 //! [Repository](https://github.com/spearman/enum-unitary)
 
-extern crate enum_iterator;
 extern crate num_traits;
 
-pub use enum_iterator::IntoEnumIterator;
-pub use num_traits::{Bounded, FromPrimitive, ToPrimitive};
+pub use enum_iterator;
+pub use num_traits::{FromPrimitive, ToPrimitive};
 
 //
 //  trait EnumUnitary
 //
-/// A collection of constraints and methods for unitary enums.
+/// A collection of constraints for unitary enums.
 ///
 /// See the `enum_unitary!` macro for defining instances of this trait.
 // TODO: expose more constraints ?
@@ -21,29 +20,7 @@ pub trait EnumUnitary : Clone
   // types requires using disambiguation syntax; we choose `usize` here since
   // it is commonly used as an index type.
   + Into <i64> + Into <u64> + Into <isize> + Into <usize>
-  + Bounded + ToPrimitive + FromPrimitive + IntoEnumIterator
-{
-  fn count_variants() -> usize { Self::COUNT }
-  fn iter_variants()  -> Box <dyn EnumIterator <Self>>;
-  fn next_variant (&self) -> Option <Self>;
-  fn prev_variant (&self) -> Option <Self>;
-  const COUNT: usize;
-}
-
-/// Type constraint for an enum iterator.
-///
-/// The `IntoEnumIterator` trait is derived and will define an iterator type
-/// named `FooEnumIterator` for an enum named `Foo` which will satisfy the
-/// `EnumIterator` constraint.
-///
-/// The `EnumUnitary::iter_variants()` method returns a trait object of this
-/// iterator for generic traversals over enums.
-pub trait EnumIterator <E> : Iterator <Item = E> + std::iter::ExactSizeIterator
-  + std::iter::FusedIterator
-{ }
-impl <I, E> EnumIterator <E> for I where
-  I : Iterator <Item = E> + std::iter::ExactSizeIterator
-    + std::iter::FusedIterator
+  + ToPrimitive + FromPrimitive + enum_iterator::Sequence
 { }
 
 //
@@ -52,15 +29,8 @@ impl <I, E> EnumIterator <E> for I where
 /// Derive and implement extra traits for "unitary" enums (i.e. enums where
 /// variants do not have payloads):
 ///
-/// - derive `IntoEnumIterator`: implements an iterator type named
-///   `FooEnumIterator` for an enum named `Foo` and provides a trait method
-///   `into_enum_iter()`
 /// - implements `num_traits` traits `Bounded`, `ToPrimitive`, `FromPrimitive`
-/// - provides a trait method `count_variants()` and a const method `count()`
-///   returning the number of variants
-/// - provides `next_variant()` and `prev_variant()` methods
-/// - provides an `iter_variants()` method which returns the enum iterator as a
-///   boxed trait object for generic traversals
+/// - implements primitive conversion types
 ///
 /// Note that `Clone` is also automatically derived so there will be an error if
 /// it is given in a derive attribute.
@@ -71,7 +41,7 @@ impl <I, E> EnumIterator <E> for I where
 /// # Examples
 ///
 /// ```
-/// use enum_unitary::{enum_unitary, EnumUnitary, Bounded, FromPrimitive,
+/// use enum_unitary::{enum_unitary, EnumUnitary, FromPrimitive,
 ///   ToPrimitive};
 ///
 /// fn main () {
@@ -81,40 +51,39 @@ impl <I, E> EnumIterator <E> for I where
 ///       A, B, C
 ///     }
 ///   }
-///   assert_eq!(E::count(), 3);
+///   assert_eq!(enum_iterator::cardinality::<E>(), 3);
 ///   assert_eq!(Into::<usize>::into (E::A), 0);
 ///   assert_eq!(Into::<usize>::into (E::B), 1);
 ///   assert_eq!(Into::<usize>::into (E::C), 2);
-///   assert_eq!(E::min_value(), E::A);
-///   assert_eq!(E::max_value(), E::C);
-///   let mut i = E::iter_variants();
+///   assert_eq!(enum_iterator::first::<E>().unwrap(), E::A);
+///   assert_eq!(enum_iterator::last::<E>().unwrap(),  E::C);
+///   let mut i = enum_iterator::all::<E>();
 ///   assert_eq!(i.next(), Some (E::A));
 ///   assert_eq!(i.next(), Some (E::B));
 ///   assert_eq!(i.next(), Some (E::C));
 ///   assert_eq!(i.next(), None);
-///   assert_eq!(E::A.next_variant(), Some (E::B));
-///   assert_eq!(E::A.prev_variant(), None);
-///   assert_eq!(E::B.next_variant(), Some (E::C));
-///   assert_eq!(E::B.prev_variant(), Some (E::A));
-///   assert_eq!(E::C.next_variant(), None);
-///   assert_eq!(E::C.prev_variant(), Some (E::B));
+///   assert_eq!(enum_iterator::next (&E::A), Some (E::B));
+///   assert_eq!(enum_iterator::previous (&E::A), None);
+///   assert_eq!(enum_iterator::next (&E::B), Some (E::C));
+///   assert_eq!(enum_iterator::previous (&E::B), Some (E::A));
+///   assert_eq!(enum_iterator::next (&E::C), None);
+///   assert_eq!(enum_iterator::previous (&E::C), Some (E::B));
 /// }
 /// ```
 
 #[macro_export]
 macro_rules! enum_unitary {
   //
-  //  nullary: private
+  //  private
   //
   (
     $(#[$attrs:meta])*
-    enum $enum:ident { }
+    enum $enum:ident { $($variant:ident),* }
   ) => {
-
     $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
+    #[derive(Clone, $crate::enum_iterator::Sequence)]
     enum $enum {
-      Void = std::isize::MAX
+      $($variant),*
     }
 
     impl From <$enum> for isize {
@@ -123,7 +92,7 @@ macro_rules! enum_unitary {
       }
     }
     impl From <$enum> for usize {
-      fn from (x: $enum) -> Self {
+      fn from (x : $enum) -> Self {
         x as usize
       }
     }
@@ -133,32 +102,21 @@ macro_rules! enum_unitary {
       }
     }
     impl From <$enum> for u64 {
-      fn from (x: $enum) -> Self {
+      fn from (x : $enum) -> Self {
         x as u64
-      }
-    }
-
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::Void
-      }
-      fn max_value() -> Self {
-        $enum::Void
       }
     }
 
     impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
-        match x as isize {
-          std::isize::MAX => Some ($enum::Void),
-          _ => None
-        }
+        const VARIANTS : [$enum; $crate::enum_iterator::cardinality::<$enum>()]
+          = [$($enum::$variant),*];
+        VARIANTS.get (x as usize).cloned()
       }
-      fn from_u64 (x: u64) -> Option <Self> {
-        match x as isize {
-          std::isize::MAX => Some ($enum::Void),
-          _ => None
-        }
+      fn from_u64 (x : u64) -> Option <Self> {
+        const VARIANTS : [$enum; $crate::enum_iterator::cardinality::<$enum>()]
+          = [$($enum::$variant),*];
+        VARIANTS.get (x as usize).cloned()
       }
     }
 
@@ -171,40 +129,20 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        None
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        None
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        0
-      }
-    }
-
+    impl $crate::EnumUnitary for $enum { }
   };
 
   //
-  //  nullary: public
+  //  public
   //
   (
     $(#[$attrs:meta])*
-    pub enum $enum:ident { }
+    pub enum $enum:ident { $($variant:ident),* }
   ) => {
-
     $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
+    #[derive(Clone, $crate::enum_iterator::Sequence)]
     pub enum $enum {
-      Void = std::isize::MAX
+      $($variant),*
     }
 
     impl From <$enum> for isize {
@@ -228,314 +166,15 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::Void
-      }
-      fn max_value() -> Self {
-        $enum::Void
-      }
-    }
-
     impl $crate::FromPrimitive for $enum {
       fn from_i64 (x : i64) -> Option <Self> {
-        match x as isize {
-          std::isize::MAX => Some ($enum::Void),
-          _ => None
-        }
-      }
-      fn from_u64 (x: u64) -> Option <Self> {
-        match x as isize {
-          std::isize::MAX => Some ($enum::Void),
-          _ => None
-        }
-      }
-    }
-
-    impl $crate::ToPrimitive for $enum {
-      fn to_i64 (&self) -> Option <i64> {
-        Some (self.clone() as i64)
-      }
-      fn to_u64 (&self) -> Option <u64> {
-        Some (self.clone() as u64)
-      }
-    }
-
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        None
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        None
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        0
-      }
-    }
-
-  };
-
-  //
-  //  singleton: private
-  //
-  (
-    $(#[$attrs:meta])*
-    enum $enum:ident { $singleton:ident$(,)* }
-  ) => {
-
-    $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
-    enum $enum {
-      $singleton=0
-    }
-
-    impl From <$enum> for isize {
-      fn from (x : $enum) -> Self {
-        x as isize
-      }
-    }
-    impl From <$enum> for usize {
-      fn from (x: $enum) -> Self {
-        x as usize
-      }
-    }
-    impl From <$enum> for i64 {
-      fn from (x : $enum) -> Self {
-        x as i64
-      }
-    }
-    impl From <$enum> for u64 {
-      fn from (x: $enum) -> Self {
-        x as u64
-      }
-    }
-
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::$singleton
-      }
-      fn max_value() -> Self {
-        $enum::$singleton
-      }
-    }
-
-    impl $crate::FromPrimitive for $enum {
-      fn from_i64 (x : i64) -> Option <Self> {
-        match x {
-          0 => Some ($enum::$singleton),
-          _ => None
-        }
-      }
-      fn from_u64 (x: u64) -> Option <Self> {
-        match x {
-          0 => Some ($enum::$singleton),
-          _ => None
-        }
-      }
-    }
-
-    impl $crate::ToPrimitive for $enum {
-      fn to_i64 (&self) -> Option <i64> {
-        Some (self.clone() as i64)
-      }
-      fn to_u64 (&self) -> Option <u64> {
-        Some (self.clone() as u64)
-      }
-    }
-
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        None
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        None
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        1
-      }
-    }
-
-  };
-
-  //
-  //  singleton: public
-  //
-  (
-    $(#[$attrs:meta])*
-    pub enum $enum:ident { $singleton:ident$(,)* }
-  ) => {
-
-    $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
-    pub enum $enum {
-      $singleton=0
-    }
-
-    impl From <$enum> for isize {
-      fn from (x : $enum) -> Self {
-        x as isize
-      }
-    }
-    impl From <$enum> for usize {
-      fn from (x: $enum) -> Self {
-        x as usize
-      }
-    }
-    impl From <$enum> for i64 {
-      fn from (x : $enum) -> Self {
-        x as i64
-      }
-    }
-    impl From <$enum> for u64 {
-      fn from (x: $enum) -> Self {
-        x as u64
-      }
-    }
-
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::$singleton
-      }
-      fn max_value() -> Self {
-        $enum::$singleton
-      }
-    }
-
-    impl $crate::FromPrimitive for $enum {
-      fn from_i64 (x : i64) -> Option <Self> {
-        match x {
-          0 => Some ($enum::$singleton),
-          _ => None
-        }
-      }
-      fn from_u64 (x: u64) -> Option <Self> {
-        match x {
-          0 => Some ($enum::$singleton),
-          _ => None
-        }
-      }
-    }
-
-    impl $crate::ToPrimitive for $enum {
-      fn to_i64 (&self) -> Option <i64> {
-        Some (self.clone() as i64)
-      }
-      fn to_u64 (&self) -> Option <u64> {
-        Some (self.clone() as u64)
-      }
-    }
-
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        None
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        None
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        1
-      }
-    }
-
-  };
-
-  //
-  //  2 or more variants: private
-  //
-  (
-    $(#[$attrs:meta])*
-    enum $enum:ident { $first:ident$(, $variant:ident$(,)*)+ }
-  ) => {
-    $crate::enum_unitary!{
-      $(#[$attrs])*
-      enum $enum {$first} {$($variant),+}
-    }
-  };
-
-  (
-    $(#[$attrs:meta])*
-    enum $enum:ident {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
-  ) => {
-    $crate::enum_unitary!{
-      $(#[$attrs])*
-      enum $enum {$($variant,)+ $more} {$($tail),+}
-    }
-  };
-
-  (
-    $(#[$attrs:meta])*
-    enum $enum:ident {$min:ident$(, $variant:ident)*} {$max:ident}
-  ) => {
-
-    $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
-    enum $enum {
-      $min=0$(, $variant)*, $max
-    }
-
-    impl From <$enum> for isize {
-      fn from (x : $enum) -> Self {
-        x as isize
-      }
-    }
-    impl From <$enum> for usize {
-      fn from (x: $enum) -> Self {
-        x as usize
-      }
-    }
-    impl From <$enum> for i64 {
-      fn from (x : $enum) -> Self {
-        x as i64
-      }
-    }
-    impl From <$enum> for u64 {
-      fn from (x: $enum) -> Self {
-        x as u64
-      }
-    }
-
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::$min
-      }
-      fn max_value() -> Self {
-        $enum::$max
-      }
-    }
-
-    impl $crate::FromPrimitive for $enum {
-      fn from_i64 (x : i64) -> Option <Self> {
-        const VARIANTS : [$enum; $enum::count()]
-          = [$enum::$min$(, $enum::$variant)*, $enum::$max];
+        const VARIANTS : [$enum; $crate::enum_iterator::cardinality::<$enum>()]
+          = [$($enum::$variant),*];
         VARIANTS.get (x as usize).cloned()
       }
       fn from_u64 (x: u64) -> Option <Self> {
-        const VARIANTS : [$enum; $enum::count()]
-          = [$enum::$min$(, $enum::$variant)*, $enum::$max];
+        const VARIANTS : [$enum; $crate::enum_iterator::cardinality::<$enum>()]
+          = [$($enum::$variant),*];
         VARIANTS.get (x as usize).cloned()
       }
     }
@@ -549,146 +188,8 @@ macro_rules! enum_unitary {
       }
     }
 
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        use $crate::{FromPrimitive, ToPrimitive};
-        let i = self.to_isize().unwrap();
-        Self::from_isize (i + 1)
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        use $crate::{FromPrimitive, ToPrimitive};
-        let i = self.to_isize().unwrap();
-        Self::from_isize (i - 1)
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        $enum::$max as usize + 1
-      }
-    }
-
+    impl $crate::EnumUnitary for $enum { }
   };
-
-  //
-  //  2 or more variants: public
-  //
-  (
-    $(#[$attrs:meta])*
-    pub enum $enum:ident { $first:ident$(, $variant:ident$(,)*)+ }
-  ) => {
-    $crate::enum_unitary!{
-      $(#[$attrs])*
-      pub enum $enum {$first} {$($variant),+}
-    }
-  };
-
-  (
-    $(#[$attrs:meta])*
-    pub enum $enum:ident
-      {$($variant:ident),+} {$more:ident$(, $tail:ident)+}
-  ) => {
-    $crate::enum_unitary!{
-      $(#[$attrs])*
-      pub enum $enum {$($variant,)+ $more} {$($tail),+}
-    }
-  };
-
-  (
-    $(#[$attrs:meta])*
-    pub enum $enum:ident
-      {$min:ident$(, $variant:ident)*} {$max:ident}
-  ) => {
-
-    $(#[$attrs])*
-    #[derive(Clone, $crate::IntoEnumIterator)]
-    pub enum $enum {
-      $min=0$(, $variant)*, $max
-    }
-
-    impl From <$enum> for isize {
-      fn from (x : $enum) -> Self {
-        x as isize
-      }
-    }
-    impl From <$enum> for usize {
-      fn from (x: $enum) -> Self {
-        x as usize
-      }
-    }
-    impl From <$enum> for i64 {
-      fn from (x : $enum) -> Self {
-        x as i64
-      }
-    }
-    impl From <$enum> for u64 {
-      fn from (x: $enum) -> Self {
-        x as u64
-      }
-    }
-
-    impl $crate::Bounded for $enum {
-      fn min_value() -> Self {
-        $enum::$min
-      }
-      fn max_value() -> Self {
-        $enum::$max
-      }
-    }
-
-    impl $crate::FromPrimitive for $enum {
-      fn from_i64 (x : i64) -> Option <Self> {
-        const VARIANTS : [$enum; $enum::count()]
-          = [$enum::$min$(, $enum::$variant)*, $enum::$max];
-        VARIANTS.get (x as usize).cloned()
-      }
-      fn from_u64 (x: u64) -> Option <Self> {
-        const VARIANTS : [$enum; $enum::count()]
-          = [$enum::$min$(, $enum::$variant)*, $enum::$max];
-        VARIANTS.get (x as usize).cloned()
-      }
-    }
-
-    impl $crate::ToPrimitive for $enum {
-      fn to_i64 (&self) -> Option <i64> {
-        Some (self.clone() as i64)
-      }
-      fn to_u64 (&self) -> Option <u64> {
-        Some (self.clone() as u64)
-      }
-    }
-
-    impl $crate::EnumUnitary for $enum {
-      const COUNT: usize = Self::count();
-      fn iter_variants() -> Box <dyn $crate::EnumIterator <Self>> {
-        use $crate::IntoEnumIterator;
-        Box::new (Self::into_enum_iter())
-      }
-      fn next_variant (&self) -> Option <Self> {
-        use $crate::{FromPrimitive, ToPrimitive};
-        let i = self.to_isize().unwrap();
-        Self::from_isize (i + 1)
-      }
-      fn prev_variant (&self) -> Option <Self> {
-        use $crate::{FromPrimitive, ToPrimitive};
-        let i = self.to_isize().unwrap();
-        Self::from_isize (i - 1)
-      }
-    }
-
-    impl $enum {
-      pub const fn count() -> usize {
-        $enum::$max as usize + 1
-      }
-    }
-
-  };
-
 }
 
 //
@@ -707,11 +208,9 @@ enum_unitary!{
 //
 #[cfg(test)]
 mod tests {
-  use std;
-
   #[test]
   fn test_unit() {
-    use crate::{EnumUnitary, Bounded, FromPrimitive, ToPrimitive};
+    use crate::{FromPrimitive, ToPrimitive};
 
     // private enum
     enum_unitary!{
@@ -720,9 +219,7 @@ mod tests {
         A, B, C
       }
     }
-    assert_eq!(Myenum1::count(), 3);
-    assert_eq!(Myenum1::COUNT, 3);
-    assert_eq!(Myenum1::count_variants(), 3);
+    assert_eq!(enum_iterator::cardinality::<Myenum1>(), 3);
     assert_eq!(Into::<usize>::into (Myenum1::A), 0);
     assert_eq!(Into::<usize>::into (Myenum1::B), 1);
     assert_eq!(Into::<usize>::into (Myenum1::C), 2);
@@ -733,19 +230,19 @@ mod tests {
     assert_eq!(Some (0), Myenum1::A.to_usize());
     assert_eq!(Some (1), Myenum1::B.to_usize());
     assert_eq!(Some (2), Myenum1::C.to_usize());
-    assert_eq!(Myenum1::min_value(), Myenum1::A);
-    assert_eq!(Myenum1::max_value(), Myenum1::C);
-    let mut i = Myenum1::iter_variants();
+    assert_eq!(enum_iterator::first::<Myenum1>().unwrap(), Myenum1::A);
+    assert_eq!(enum_iterator::last::<Myenum1>().unwrap(), Myenum1::C);
+    let mut i = enum_iterator::all::<Myenum1>();
     assert_eq!(i.next(), Some (Myenum1::A));
     assert_eq!(i.next(), Some (Myenum1::B));
     assert_eq!(i.next(), Some (Myenum1::C));
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum1::A.next_variant(), Some (Myenum1::B));
-    assert_eq!(Myenum1::A.prev_variant(), None);
-    assert_eq!(Myenum1::B.next_variant(), Some (Myenum1::C));
-    assert_eq!(Myenum1::B.prev_variant(), Some (Myenum1::A));
-    assert_eq!(Myenum1::C.next_variant(), None);
-    assert_eq!(Myenum1::C.prev_variant(), Some (Myenum1::B));
+    assert_eq!(enum_iterator::next (&Myenum1::A), Some (Myenum1::B));
+    assert_eq!(enum_iterator::previous (&Myenum1::A), None);
+    assert_eq!(enum_iterator::next (&Myenum1::B), Some (Myenum1::C));
+    assert_eq!(enum_iterator::previous (&Myenum1::B), Some (Myenum1::A));
+    assert_eq!(enum_iterator::next (&Myenum1::C), None);
+    assert_eq!(enum_iterator::previous (&Myenum1::C), Some (Myenum1::B));
 
     // public enum
     enum_unitary!{
@@ -754,9 +251,7 @@ mod tests {
         A, B, C
       }
     }
-    assert_eq!(Myenum2::count(), 3);
-    assert_eq!(Myenum2::COUNT, 3);
-    assert_eq!(Myenum2::count_variants(), 3);
+    assert_eq!(enum_iterator::cardinality::<Myenum2>(), 3);
     assert_eq!(Into::<usize>::into (Myenum2::A), 0);
     assert_eq!(Into::<usize>::into (Myenum2::B), 1);
     assert_eq!(Into::<usize>::into (Myenum2::C), 2);
@@ -767,19 +262,19 @@ mod tests {
     assert_eq!(Some (0), Myenum2::A.to_usize());
     assert_eq!(Some (1), Myenum2::B.to_usize());
     assert_eq!(Some (2), Myenum2::C.to_usize());
-    assert_eq!(Myenum2::min_value(), Myenum2::A);
-    assert_eq!(Myenum2::max_value(), Myenum2::C);
-    let mut i = Myenum2::iter_variants();
+    assert_eq!(enum_iterator::first::<Myenum2>().unwrap(), Myenum2::A);
+    assert_eq!(enum_iterator::last::<Myenum2>().unwrap(), Myenum2::C);
+    let mut i = enum_iterator::all::<Myenum2>();
     assert_eq!(i.next(), Some (Myenum2::A));
     assert_eq!(i.next(), Some (Myenum2::B));
     assert_eq!(i.next(), Some (Myenum2::C));
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum2::A.next_variant(), Some (Myenum2::B));
-    assert_eq!(Myenum2::A.prev_variant(), None);
-    assert_eq!(Myenum2::B.next_variant(), Some (Myenum2::C));
-    assert_eq!(Myenum2::B.prev_variant(), Some (Myenum2::A));
-    assert_eq!(Myenum2::C.next_variant(), None);
-    assert_eq!(Myenum2::C.prev_variant(), Some (Myenum2::B));
+    assert_eq!(enum_iterator::next (&Myenum2::A), Some (Myenum2::B));
+    assert_eq!(enum_iterator::previous (&Myenum2::A), None);
+    assert_eq!(enum_iterator::next (&Myenum2::B), Some (Myenum2::C));
+    assert_eq!(enum_iterator::previous (&Myenum2::B), Some (Myenum2::A));
+    assert_eq!(enum_iterator::next (&Myenum2::C), None);
+    assert_eq!(enum_iterator::previous (&Myenum2::C), Some (Myenum2::B));
 
     // private singleton enum
     enum_unitary!{
@@ -788,20 +283,18 @@ mod tests {
         X
       }
     }
-    assert_eq!(Myenum3::count(), 1);
-    assert_eq!(Myenum3::COUNT, 1);
-    assert_eq!(Myenum3::count_variants(), 1);
+    assert_eq!(enum_iterator::cardinality::<Myenum3>(), 1);
     assert_eq!(Into::<usize>::into (Myenum3::X), 0);
     assert_eq!(Some (Myenum3::X), Myenum3::from_usize (0));
     assert_eq!(None, Myenum3::from_usize (1));
     assert_eq!(Some (0), Myenum3::X.to_usize());
-    assert_eq!(Myenum3::min_value(), Myenum3::X);
-    assert_eq!(Myenum3::max_value(), Myenum3::X);
-    let mut i = Myenum3::iter_variants();
+    assert_eq!(enum_iterator::first::<Myenum3>().unwrap(), Myenum3::X);
+    assert_eq!(enum_iterator::last::<Myenum3>().unwrap(), Myenum3::X);
+    let mut i = enum_iterator::all::<Myenum3>();
     assert_eq!(i.next(), Some (Myenum3::X));
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum3::X.next_variant(), None);
-    assert_eq!(Myenum3::X.prev_variant(), None);
+    assert_eq!(enum_iterator::next (&Myenum3::X), None);
+    assert_eq!(enum_iterator::previous (&Myenum3::X), None);
 
     // public singleton enum
     enum_unitary!{
@@ -810,61 +303,41 @@ mod tests {
         X
       }
     }
-    assert_eq!(Myenum4::count(), 1);
-    assert_eq!(Myenum4::COUNT, 1);
-    assert_eq!(Myenum4::count_variants(), 1);
+    assert_eq!(enum_iterator::cardinality::<Myenum4>(), 1);
     assert_eq!(Into::<usize>::into (Myenum4::X), 0);
     assert_eq!(Some (Myenum4::X), Myenum4::from_usize (0));
     assert_eq!(None, Myenum4::from_usize (1));
     assert_eq!(Some (0), Myenum4::X.to_usize());
-    assert_eq!(Myenum4::min_value(), Myenum4::X);
-    assert_eq!(Myenum4::max_value(), Myenum4::X);
-    let mut i = Myenum4::iter_variants();
+    assert_eq!(enum_iterator::first::<Myenum4>().unwrap(), Myenum4::X);
+    assert_eq!(enum_iterator::last::<Myenum4>().unwrap(), Myenum4::X);
+    let mut i = enum_iterator::all::<Myenum4>();
     assert_eq!(i.next(), Some (Myenum4::X));
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum4::X.next_variant(), None);
-    assert_eq!(Myenum4::X.prev_variant(), None);
+    assert_eq!(enum_iterator::next (&Myenum4::X), None);
+    assert_eq!(enum_iterator::previous (&Myenum4::X), None);
 
     // private nullary enum
     enum_unitary!{
       #[derive(Debug, PartialEq)]
       enum Myenum5 { }
     }
-    assert_eq!(Myenum5::count(), 0);
-    assert_eq!(Myenum5::COUNT, 0);
-    assert_eq!(Myenum5::count_variants(), 0);
-    assert_eq!(Myenum5::Void as isize, std::isize::MAX);
-    assert_eq!(Some (Myenum5::Void),
-      Myenum5::from_usize (std::isize::MAX as usize));
+    assert_eq!(enum_iterator::cardinality::<Myenum5>(), 0);
     assert_eq!(None, Myenum5::from_usize (0));
-    assert_eq!(Some (std::isize::MAX as usize), Myenum5::Void.to_usize());
-    assert_eq!(Myenum5::min_value(), Myenum5::Void);
-    assert_eq!(Myenum5::max_value(), Myenum5::Void);
-    let mut i = Myenum5::iter_variants();
-    assert_eq!(i.next(), Some (Myenum5::Void));
+    assert_eq!(enum_iterator::first::<Myenum5>(), None);
+    assert_eq!(enum_iterator::last::<Myenum5>(), None);
+    let mut i = enum_iterator::all::<Myenum5>();
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum5::Void.next_variant(), None);
-    assert_eq!(Myenum5::Void.prev_variant(), None);
 
     // public nullary enum
     enum_unitary!{
       #[derive(Debug, PartialEq)]
       pub enum Myenum6 { }
     }
-    assert_eq!(Myenum6::count(), 0);
-    assert_eq!(Myenum6::COUNT, 0);
-    assert_eq!(Myenum6::count_variants(), 0);
-    assert_eq!(Myenum6::Void as isize, std::isize::MAX);
-    assert_eq!(Some (Myenum6::Void),
-      Myenum6::from_usize (std::isize::MAX as usize));
+    assert_eq!(enum_iterator::cardinality::<Myenum6>(), 0);
     assert_eq!(None, Myenum6::from_usize (0));
-    assert_eq!(Some (std::isize::MAX as usize), Myenum6::Void.to_usize());
-    assert_eq!(Myenum6::min_value(), Myenum6::Void);
-    assert_eq!(Myenum6::max_value(), Myenum6::Void);
-    let mut i = Myenum6::iter_variants();
-    assert_eq!(i.next(), Some (Myenum6::Void));
+    assert_eq!(enum_iterator::first::<Myenum6>(), None);
+    assert_eq!(enum_iterator::last::<Myenum6>(), None);
+    let mut i = enum_iterator::all::<Myenum6>();
     assert_eq!(i.next(), None);
-    assert_eq!(Myenum6::Void.next_variant(), None);
-    assert_eq!(Myenum6::Void.prev_variant(), None);
   }
 } // end mod tests
