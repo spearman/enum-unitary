@@ -5,7 +5,7 @@
 [Documentation](https://docs.rs/enum-unitary)
 
 *NOTE*: this crate is more or less obsolete now that
-[`enum_unitary`](https://crates.io/crates/enum-iterator) 1.0 exists
+[`enum_iterator` v1.0](https://crates.io/crates/enum-iterator) exists
 
 The `EnumUnitary` trait carries a number of constraints for primitive
 conversions and limits and iterating over variants of a unitary enum (i.e. enum
