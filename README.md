@@ -5,7 +5,8 @@
 the required traits. The only thing this crate provides are `Into` for `usize`,
 `isize`, `i64`, and `u64`, which are trivial to implement. See also the
 `num_enum` crate which will safely derive `Into` for enums with `#[repr(T)]`
-attributes.
+attributes. `strum` and `strum_macros` also provide procedural macros and traits
+for enum iterators, variant counts, and conversions.
 
 > Trait and macro for unitary enums
 
